@@ -19,9 +19,33 @@ import {
   ResponsiveContainer,
 } from "recharts";
 
+interface ProgressRecord {
+  date: string;
+  calories: number;
+  protein: number;
+  carbs: number;
+  fat: number;
+  goal_calories: number;
+  adherence_score: number;
+  meals_count: number;
+}
+
+interface ProgressSummary {
+  period_days: number;
+  avg_calories: number;
+  avg_protein: number;
+  avg_adherence: number;
+  days_tracked: number;
+}
+
+interface ProgressData {
+  progress: ProgressRecord[];
+  summary: ProgressSummary;
+}
+
 export default function ProgressPage() {
   const [period, setPeriod] = useState<"weekly" | "monthly">("weekly");
-  const [progressData, setProgressData] = useState<any>(null);
+  const [progressData, setProgressData] = useState<ProgressData | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {

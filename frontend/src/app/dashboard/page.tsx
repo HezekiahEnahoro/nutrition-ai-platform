@@ -10,10 +10,18 @@ import { AnimatedNumber } from "@/components/ui/AnimatedNumber";
 import { containerVariants, itemVariants } from "@/lib/animations";
 import { Meal } from "@/types";
 
+interface DailySummary {
+  totals: {
+    calories: number;
+    protein: number;
+    carbs: number;
+    fat: number;
+  };
+}
 export default function DashboardPage() {
   const { isAuthenticated, isLoading: authLoading } = useAuth();
   const [meals, setMeals] = useState<Meal[]>([]);
-  const [dailySummary, setDailySummary] = useState<any>(null);
+  const [dailySummary, setDailySummary] = useState<DailySummary | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -127,7 +135,7 @@ export default function DashboardPage() {
               <motion.h2
                 className="text-lg font-semibold mb-4"
                 variants={itemVariants}>
-                Today's Summary
+                Today&apos;s Summary
               </motion.h2>
               <motion.div
                 className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4"

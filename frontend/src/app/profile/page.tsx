@@ -8,6 +8,12 @@ import { AnimatedButton } from "@/components/ui/AnimatedButton";
 import { AnimatedNumber } from "@/components/ui/AnimatedNumber";
 import { containerVariants, itemVariants } from "@/lib/animations";
 
+interface CalculatedGoals {
+  calories: number;
+  protein: number;
+  carbs: number;
+  fat: number;
+}
 export default function ProfilePage() {
   const [formData, setFormData] = useState({
     age: "",
@@ -22,7 +28,8 @@ export default function ProfilePage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
-  const [calculatedGoals, setCalculatedGoals] = useState<any>(null);
+  const [calculatedGoals, setCalculatedGoals] =
+    useState<CalculatedGoals | null>(null);
 
   useEffect(() => {
     loadProfile();
