@@ -134,53 +134,80 @@ REST_FRAMEWORK = {
     'PAGE_SIZE': 20,
 }
 
-# CORS Settings
-CORS_ALLOWED_ORIGINS = config('CORS_ALLOWED_ORIGINS', default='localhost,127.0.0.1').split(',')
+# -----------------------------
+# CORS / CSRF / Cookies (env-driven)
+# -----------------------------
+from urllib.parse import urlparse
+
+def _split(name: str, default: str = ""):
+    raw = config(name, default=default)
+    return [x.strip() for x in raw.split(",") if x.strip()]
+
+def _ensure_scheme(origins, default_scheme="http"):
+    norm = []
+    for o in origins:
+        if o.startswith("http://") or o.startswith("https://"):
+            norm.append(o)
+        else:
+            # add scheme if missing
+            norm.append(f"{default_scheme}://{o}")
+    return norm
+
+# Local dev defaults
+_default_cors = "http://localhost:3000,http://127.0.0.1:3000"
+_default_csrf = "http://localhost:3000,http://127.0.0.1:3000"
+
+# Read env and normalize
+_raw_cors = _split("CORS_ALLOWED_ORIGINS", _default_cors)
+_raw_csrf = _split("CSRF_TRUSTED_ORIGINS", _default_csrf)
+
+# If any entries are missing http(s), add it (http for dev, https for prod)
+CORS_ALLOWED_ORIGINS = _ensure_scheme(_raw_cors, default_scheme="https" if not DEBUG else "http")
+CSRF_TRUSTED_ORIGINS = _ensure_scheme(_raw_csrf, default_scheme="https" if not DEBUG else "http")
+
+# Optional: allow Vercel preview subdomains for CORS (not for CSRF)
+# Example: CORS_ALLOWED_ORIGIN_REGEXES="^https://.*\\.vercel\\.app$"
+CORS_ALLOWED_ORIGIN_REGEXES = _split("CORS_ALLOWED_ORIGIN_REGEXES", "")
 
 CORS_ALLOW_CREDENTIALS = True
+# (You can rely on django-cors-headers defaults for methods/headers)
 
-# Additional CORS settings
-CORS_ALLOW_METHODS = [
-    'DELETE',
-    'GET',
-    'OPTIONS',
-    'PATCH',
-    'POST',
-    'PUT',
-]
+# Cookie policy
+# If FRONTEND and API are different HTTPS origins (Vercel ↔ Render), use cross-site settings.
+CROSS_SITE_PROD = config("CROSS_SITE_PROD", default="true", cast=bool)
 
-CORS_ALLOW_HEADERS = [
-    'accept',
-    'accept-encoding',
-    'authorization',
-    'content-type',
-    'dnt',
-    'origin',
-    'user-agent',
-    'x-csrftoken',
-    'x-requested-with',
-    'cookie',
-]
+if DEBUG:
+    # Dev over HTTP
+    SESSION_COOKIE_SECURE = False
+    CSRF_COOKIE_SECURE = False
+    SESSION_COOKIE_SAMESITE = "Lax"
+    CSRF_COOKIE_SAMESITE = "Lax"
+else:
+    if CROSS_SITE_PROD:
+        # Cross-site HTTPS
+        SESSION_COOKIE_SECURE = True
+        CSRF_COOKIE_SECURE = True
+        SESSION_COOKIE_SAMESITE = "None"
+        CSRF_COOKIE_SAMESITE = "None"
+    else:
+        # Same-origin HTTPS (behind a proxy/domain that serves both)
+        SESSION_COOKIE_SECURE = True
+        CSRF_COOKIE_SECURE = True
+        SESSION_COOKIE_SAMESITE = "Lax"
+        CSRF_COOKIE_SAMESITE = "Lax"
 
-# CSRF Settings - FIX THIS SECTION
-CSRF_TRUSTED_ORIGINS = config('CSRF_TRUSTED_ORIGINS', default='localhost,127.0.0.1').split(',')
-
-# Session Settings
-SESSION_COOKIE_AGE = 1209600
-SESSION_COOKIE_SECURE = False  # False for HTTP
-SESSION_COOKIE_HTTPONLY = False  # False to allow JS to read
-SESSION_COOKIE_SAMESITE = 'Lax'  # NOT None - must be Lax for HTTP
-SESSION_COOKIE_DOMAIN = None  # Let Django set it automatically
-SESSION_COOKIE_NAME = 'sessionid'
-SESSION_SAVE_EVERY_REQUEST = True
-
-# CSRF Cookie Settings
-CSRF_COOKIE_SECURE = False
+# Keep CSRF cookie readable so you can send X-CSRFToken
 CSRF_COOKIE_HTTPONLY = False
-CSRF_COOKIE_SAMESITE = None
-CSRF_COOKIE_DOMAIN = None
-CSRF_USE_SESSIONS = False
-CSRF_COOKIE_NAME = 'csrftoken'
+SESSION_COOKIE_HTTPONLY = False  # if you don’t need JS access, set True for security
+
+SESSION_COOKIE_NAME = config("SESSION_COOKIE_NAME", default="sessionid")
+CSRF_COOKIE_NAME   = config("CSRF_COOKIE_NAME", default="csrftoken")
+SESSION_COOKIE_DOMAIN = config("SESSION_COOKIE_DOMAIN", default=None)
+CSRF_COOKIE_DOMAIN    = config("CSRF_COOKIE_DOMAIN", default=None)
+
+# Don’t let redirects break preflight during setup; enable later if desired
+SECURE_SSL_REDIRECT = config("SECURE_SSL_REDIRECT", default=not DEBUG, cast=bool)
+
 
 # Internationalization
 LANGUAGE_CODE = 'en-us'
