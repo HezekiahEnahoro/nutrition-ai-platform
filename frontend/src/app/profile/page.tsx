@@ -15,7 +15,7 @@ interface CalculatedGoals {
   fat: number;
 }
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
+const API_BASE_URL =(process.env.NEXT_PUBLIC_API_URL ?? "").replace(/\/+$/, "") || "";
 export default function ProfilePage() {
   const [formData, setFormData] = useState({
     age: "",
@@ -39,7 +39,7 @@ export default function ProfilePage() {
 
   const loadProfile = async () => {
     try {
-      const response = await fetch(`"${API_BASE_URL}/api/auth/profile/"`, {
+      const response = await fetch(`${API_BASE_URL}/api/auth/profile/`, {
         credentials: "include",
       });
 
@@ -88,7 +88,7 @@ export default function ProfilePage() {
     };
 
     try {
-      const response = await fetch(`"${API_BASE_URL}/api/auth/profile/"`, {
+      const response = await fetch(`${API_BASE_URL}/api/auth/profile/`, {
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",

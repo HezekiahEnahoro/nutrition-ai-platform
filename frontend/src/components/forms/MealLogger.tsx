@@ -10,7 +10,7 @@ interface MealLoggerProps {
   onMealLogged?: () => void;
 }
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
+const API_BASE_URL = (process.env.NEXT_PUBLIC_API_URL?? "").replace(/\/+$/, "") || "";
 
 export function MealLogger({ onMealLogged }: MealLoggerProps) {
   const [description, setDescription] = useState("");
@@ -34,7 +34,7 @@ export function MealLogger({ onMealLogged }: MealLoggerProps) {
     setShowSuccess(false);
 
     try {
-      const response = await fetch(`"${API_BASE_URL}/api/meals/analyze/"`, {
+      const response = await fetch(`${API_BASE_URL}/api/meals/analyze/`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",

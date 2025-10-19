@@ -19,7 +19,7 @@ interface DailySummary {
   };
 }
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
+const API_BASE_URL = (process.env.NEXT_PUBLIC_API_URL ?? "").replace(/\/+$/, "") || "";
 export default function DashboardPage() {
   const { isAuthenticated, isLoading: authLoading } = useAuth();
   const [meals, setMeals] = useState<Meal[]>([]);
@@ -39,10 +39,10 @@ export default function DashboardPage() {
 
     try {
       const [summaryResponse, mealsResponse] = await Promise.all([
-        fetch(`${API_BASE_URL}/api/meals/daily_summary/"`, {
+        fetch(`${API_BASE_URL}/api/meals/daily_summary/`, {
           credentials: "include",
         }),
-        fetch(`${API_BASE_URL}/api/meals/"`, { credentials: "include" }),
+        fetch(`${API_BASE_URL}/api/meals/`, { credentials: "include" }),
       ]);
 
       if (summaryResponse.ok) {
