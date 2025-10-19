@@ -42,7 +42,7 @@ interface ProgressData {
   progress: ProgressRecord[];
   summary: ProgressSummary;
 }
-
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
 export default function ProgressPage() {
   const [period, setPeriod] = useState<"weekly" | "monthly">("weekly");
   const [progressData, setProgressData] = useState<ProgressData | null>(null);
@@ -56,8 +56,8 @@ export default function ProgressPage() {
     setLoading(true);
     const endpoint =
       period === "weekly"
-        ? "http://localhost:8000/api/meals/progress/weekly/"
-        : "http://localhost:8000/api/meals/progress/monthly/";
+        ? `"${API_BASE_URL}/api/meals/progress/weekly/"`
+        : `"${API_BASE_URL}/api/meals/progress/monthly/"`;
 
     try {
       const response = await fetch(endpoint, { credentials: "include" });
