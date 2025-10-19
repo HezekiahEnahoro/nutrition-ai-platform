@@ -1,6 +1,6 @@
 import { User, Meal, MealAnalysis, UserProfile, Recommendation } from '@/types';
 
-const API_BASE_URL = 'https://nutrition-ai-platform.onrender.com';
+const API_BASE_URL = 'https://nutrition-ai-platform.onrender.com/api';
 
 interface ApiResponse<T = unknown> {
   data?: T;
