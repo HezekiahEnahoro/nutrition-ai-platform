@@ -70,18 +70,15 @@ class LoginView(APIView):
     permission_classes = [permissions.AllowAny]
 
     def post(self, request):
-        print(f"Login attempt for: {request.data.get('username')}")
+        username = request.data.get('username')
+        print(f"Login attempt for: {username}")
         
         serializer = LoginSerializer(data=request.data, context={'request': request})
         if serializer.is_valid():
             user = serializer.validated_data['user']
             
-            # Force session creation
-            if not request.session.session_key:
-                request.session.create()
-            
+            # Django's login() handles session creation automatically
             login(request, user)
-            request.session.save()
             
             session_key = request.session.session_key
             print(f"User {user.username} logged in successfully")
@@ -92,24 +89,10 @@ class LoginView(APIView):
             response_data = {
                 'message': 'Login successful',
                 'user': user_serializer.data,
-                'session_key': session_key
             }
             
-            response = JsonResponse(response_data, status=200)
-            
-            # Set cookie with domain that works for cross-origin
-            response.set_cookie(
-                'sessionid',
-                session_key,
-                max_age=1209600,
-                httponly=False,
-                secure=False,
-                samesite=None,
-                # domain='.localhost'  # This is key - allows sharing between subdomains
-            )
-            
-            print(f"Setting cookie with domain=.localhost: sessionid={session_key}")
-            return response
+            # Let Django handle cookies automatically
+            return Response(response_data, status=200)
         
         print(f"Login validation errors: {serializer.errors}")
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

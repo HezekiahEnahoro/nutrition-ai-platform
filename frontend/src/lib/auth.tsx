@@ -7,6 +7,7 @@ import {
   useState,
   ReactNode,
 } from "react";
+import { useRouter, usePathname } from "next/navigation";
 import { User } from "@/types";
 import { api } from "@/lib/api";
 
@@ -39,79 +40,88 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const router = useRouter();
+  const pathname = usePathname();
 
-  // Check authentication on mount - but don't fail if it doesn't work
   useEffect(() => {
-    checkAuthSilently();
+    loadUserFromStorage();
   }, []);
 
-  const checkAuthSilently = async () => {
-    try {
-      const response = await api.getCurrentUser();
+  // Protect routes
+  useEffect(() => {
+    if (!isLoading && !isAuthenticated) {
+      const publicRoutes = ["/", "/login", "/register"];
+      if (!publicRoutes.includes(pathname)) {
+        router.push("/login");
+      }
+    }
+  }, [isLoading, isAuthenticated, pathname, router]);
 
-      if (response.data?.user) {
-        setUser(response.data.user);
+  const loadUserFromStorage = () => {
+    try {
+      const storedUser = localStorage.getItem("nutrition_user");
+      if (storedUser) {
+        const userData = JSON.parse(storedUser);
+        setUser(userData);
         setIsAuthenticated(true);
-      } else {
-        setUser(null);
-        setIsAuthenticated(false);
       }
     } catch (error) {
-      console.log("Silent auth check failed:", error);
-      setUser(null);
-      setIsAuthenticated(false);
+      console.error("Failed to load user from storage:", error);
+      localStorage.removeItem("nutrition_user");
     } finally {
       setIsLoading(false);
     }
   };
 
   const login = async (username: string, password: string) => {
-    setIsLoading(true);
-
     try {
       const response = await api.login(username, password);
 
       if (response.error) {
-        setIsLoading(false);
         return { success: false, error: response.error };
       }
 
-      // Set user data from login response
       if (response.data?.user) {
-        setUser(response.data.user);
+        const userData = response.data.user;
+        setUser(userData);
         setIsAuthenticated(true);
+        localStorage.setItem("nutrition_user", JSON.stringify(userData));
+
+        // Redirect will happen from login page
+        return { success: true };
       }
 
-      setIsLoading(false);
-      return { success: true };
+      return { success: false, error: "No user data received" };
     } catch (error) {
-      setIsLoading(false);
-      return { success: false, error: "Login failed" };
+      console.error("Login error:", error);
+      return { success: false, error: "Login failed. Please try again." };
     }
   };
 
   const register = async (userData: RegisterData) => {
-    setIsLoading(true);
-
     try {
       const response = await api.register(userData);
 
       if (response.error) {
-        setIsLoading(false);
         return { success: false, error: response.error };
       }
 
-      // Set user data from register response
       if (response.data?.user) {
-        setUser(response.data.user);
+        const user = response.data.user;
+        setUser(user);
         setIsAuthenticated(true);
+        localStorage.setItem("nutrition_user", JSON.stringify(user));
+
+        return { success: true };
       }
 
-      setIsLoading(false);
-      return { success: true };
-    } catch (error) {
-      setIsLoading(false);
       return { success: false, error: "Registration failed" };
+    } catch (error) {
+      console.error("Registration error:", error);
+      return {
+        success: false,
+        error: "Registration failed. Please try again.",
+      };
     }
   };
 
@@ -119,10 +129,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       await api.logout();
     } catch (error) {
-      console.log("Logout error:", error);
+      console.error("Logout error:", error);
     } finally {
       setUser(null);
       setIsAuthenticated(false);
+      localStorage.removeItem("nutrition_user");
+      router.push("/login");
     }
   };
 

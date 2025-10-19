@@ -1,76 +1,104 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
-import Link from 'next/link';
-import { useAuthStore } from '@/store/authStore';
-import { Button } from '@/components/ui/Button';
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { useAuth } from "@/lib/auth";
+import Link from "next/link";
+import { motion } from "framer-motion";
 
 export default function RegisterPage() {
-  const [formData, setFormData] = useState({
-    username: '',
-    email: '',
-    first_name: '',
-    last_name: '',
-    password: '',
-    password_confirm: '',
-  });
-  const [error, setError] = useState('');
-  
-  const { register, isLoading } = useAuthStore();
   const router = useRouter();
+  const { register, isAuthenticated, isLoading: authLoading } = useAuth();
+  const [formData, setFormData] = useState({
+    username: "",
+    email: "",
+    first_name: "",
+    last_name: "",
+    password: "",
+    password_confirm: "",
+  });
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (!authLoading && isAuthenticated) {
+      router.push("/dashboard");
+    }
+  }, [isAuthenticated, authLoading, router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError('');
+    setError("");
 
     if (formData.password !== formData.password_confirm) {
-      setError("Passwords don't match");
+      setError("Passwords do not match");
       return;
     }
 
+    setLoading(true);
+
     const result = await register(formData);
-    
+
     if (result.success) {
-      router.push('/dashboard');
+      router.push("/profile");
     } else {
-      setError(result.error || 'Registration failed');
+      setError(result.error || "Registration failed");
+      setLoading(false);
     }
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      [e.target.name]: e.target.value
+      [e.target.name]: e.target.value,
     }));
   };
 
-  return (
-    <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
-      <div className="sm:mx-auto sm:w-full sm:max-w-md">
-        <h2 className="mt-6 text-center text-3xl font-bold text-gray-900">
-          Create your account
-        </h2>
-        <p className="mt-2 text-center text-sm text-gray-600">
-          Or{' '}
-          <Link href="/login" className="font-medium text-blue-600 hover:text-blue-500">
-            sign in to existing account
-          </Link>
-        </p>
+  if (authLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading...</p>
+        </div>
       </div>
+    );
+  }
 
-      <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
-        <div className="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
-          <form className="space-y-6" onSubmit={handleSubmit}>
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 py-12 px-4 sm:px-6 lg:px-8">
+      <motion.div
+        className="max-w-md w-full"
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}>
+        <div className="bg-white rounded-2xl shadow-xl p-8">
+          <div className="text-center mb-8">
+            <motion.div
+              initial={{ scale: 0 }}
+              animate={{ scale: 1 }}
+              transition={{ delay: 0.2, type: "spring" }}>
+              <h1 className="text-4xl font-bold text-gray-900 mb-2">🥗</h1>
+            </motion.div>
+            <h2 className="text-3xl font-bold text-gray-900">Create Account</h2>
+            <p className="mt-2 text-gray-600">Start your nutrition journey</p>
+          </div>
+
+          <form className="space-y-4" onSubmit={handleSubmit}>
             {error && (
-              <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded">
-                {error}
-              </div>
+              <motion.div
+                className="bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded-lg"
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}>
+                <p className="text-sm">{error}</p>
+              </motion.div>
             )}
 
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label htmlFor="first_name" className="block text-sm font-medium text-gray-700">
+                <label
+                  htmlFor="first_name"
+                  className="block text-sm font-medium text-gray-700 mb-1">
                   First Name
                 </label>
                 <input
@@ -78,14 +106,17 @@ export default function RegisterPage() {
                   name="first_name"
                   type="text"
                   required
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   value={formData.first_name}
                   onChange={handleChange}
-                  className="mt-1 appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                  disabled={loading}
                 />
               </div>
 
               <div>
-                <label htmlFor="last_name" className="block text-sm font-medium text-gray-700">
+                <label
+                  htmlFor="last_name"
+                  className="block text-sm font-medium text-gray-700 mb-1">
                   Last Name
                 </label>
                 <input
@@ -93,15 +124,18 @@ export default function RegisterPage() {
                   name="last_name"
                   type="text"
                   required
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   value={formData.last_name}
                   onChange={handleChange}
-                  className="mt-1 appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                  disabled={loading}
                 />
               </div>
             </div>
-            
+
             <div>
-              <label htmlFor="username" className="block text-sm font-medium text-gray-700">
+              <label
+                htmlFor="username"
+                className="block text-sm font-medium text-gray-700 mb-1">
                 Username
               </label>
               <input
@@ -109,14 +143,17 @@ export default function RegisterPage() {
                 name="username"
                 type="text"
                 required
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 value={formData.username}
                 onChange={handleChange}
-                className="mt-1 appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                disabled={loading}
               />
             </div>
 
             <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700">
+              <label
+                htmlFor="email"
+                className="block text-sm font-medium text-gray-700 mb-1">
                 Email
               </label>
               <input
@@ -124,14 +161,17 @@ export default function RegisterPage() {
                 name="email"
                 type="email"
                 required
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 value={formData.email}
                 onChange={handleChange}
-                className="mt-1 appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                disabled={loading}
               />
             </div>
 
             <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700">
+              <label
+                htmlFor="password"
+                className="block text-sm font-medium text-gray-700 mb-1">
                 Password
               </label>
               <input
@@ -139,14 +179,17 @@ export default function RegisterPage() {
                 name="password"
                 type="password"
                 required
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 value={formData.password}
                 onChange={handleChange}
-                className="mt-1 appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                disabled={loading}
               />
             </div>
 
             <div>
-              <label htmlFor="password_confirm" className="block text-sm font-medium text-gray-700">
+              <label
+                htmlFor="password_confirm"
+                className="block text-sm font-medium text-gray-700 mb-1">
                 Confirm Password
               </label>
               <input
@@ -154,24 +197,44 @@ export default function RegisterPage() {
                 name="password_confirm"
                 type="password"
                 required
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 value={formData.password_confirm}
                 onChange={handleChange}
-                className="mt-1 appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                disabled={loading}
               />
             </div>
 
             <div>
-              <Button
+              <motion.button
                 type="submit"
-                disabled={isLoading}
-                className="w-full flex justify-center py-2 px-4"
-              >
-                {isLoading ? 'Creating account...' : 'Create account'}
-              </Button>
+                disabled={loading}
+                className="w-full py-3 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                whileHover={{ scale: loading ? 1 : 1.02 }}
+                whileTap={{ scale: loading ? 1 : 0.98 }}>
+                {loading ? (
+                  <div className="flex items-center justify-center">
+                    <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
+                    Creating account...
+                  </div>
+                ) : (
+                  "Create Account"
+                )}
+              </motion.button>
+            </div>
+
+            <div className="text-center">
+              <p className="text-sm text-gray-600">
+                Already have an account?{" "}
+                <Link
+                  href="/login"
+                  className="font-medium text-blue-600 hover:text-blue-500 transition-colors">
+                  Sign in
+                </Link>
+              </p>
             </div>
           </form>
         </div>
-      </div>
+      </motion.div>
     </div>
   );
 }
