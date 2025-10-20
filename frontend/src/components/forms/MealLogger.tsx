@@ -34,7 +34,7 @@ export function MealLogger({ onMealLogged }: MealLoggerProps) {
     setShowSuccess(false);
 
     try {
-      const response = await fetch(`${API_BASE_URL}/api/meals/analyze/`, {
+      const response = await fetch(`${API_BASE_URL}/meals/analyze/`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",

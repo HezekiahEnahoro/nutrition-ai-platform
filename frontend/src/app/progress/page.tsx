@@ -56,8 +56,8 @@ export default function ProgressPage() {
     setLoading(true);
     const endpoint =
       period === "weekly"
-        ? `${API_BASE_URL}/api/meals/progress/weekly/`
-        : `${API_BASE_URL}/api/meals/progress/monthly/`;
+        ? `${API_BASE_URL}/meals/progress/weekly/`
+        : `${API_BASE_URL}/meals/progress/monthly/`;
 
     try {
       const response = await fetch(endpoint, { credentials: "include" });
