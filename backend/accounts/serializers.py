@@ -40,11 +40,17 @@ class RegisterSerializer(serializers.ModelSerializer):
         return attrs
 
     def create(self, validated_data):
+         # Remove password_confirm before creating user
         validated_data.pop('password_confirm')
-        user = User.objects.create_user(**validated_data)
         
-        # Create user profile
-        UserProfile.objects.create(user=user)
+        # Use create_user to properly hash password
+        user = User.objects.create_user(
+            username=validated_data['username'],
+            email=validated_data.get('email', ''),
+            password=validated_data['password'],  # This will be hashed
+            first_name=validated_data.get('first_name', ''),
+            last_name=validated_data.get('last_name', '')
+        )
         
         return user
 
