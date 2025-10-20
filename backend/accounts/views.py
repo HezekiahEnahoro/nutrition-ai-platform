@@ -65,7 +65,6 @@ class RegisterView(APIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 @method_decorator(csrf_exempt, name='dispatch')
-
 class LoginView(APIView):
     permission_classes = [permissions.AllowAny]
 
@@ -97,11 +96,13 @@ class LoginView(APIView):
         print(f"Login validation errors: {serializer.errors}")
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
+@method_decorator(csrf_exempt, name='dispatch')
 class LogoutView(APIView):
     def post(self, request):
         logout(request)
         return Response({'message': 'Logout successful'}, status=status.HTTP_200_OK)
 
+@method_decorator(csrf_exempt, name='dispatch')
 class CurrentUserView(APIView):
     permission_classes = [permissions.AllowAny]  
     def get(self, request):
@@ -140,6 +141,7 @@ class CurrentUserView(APIView):
                 return JsonResponse({'error': 'Not authenticated'}, status=401)
         return JsonResponse({'error': 'Method not allowed'}, status=405)
 
+@method_decorator(csrf_exempt, name='dispatch')
 class ProfileView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
