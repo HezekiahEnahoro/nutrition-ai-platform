@@ -13,7 +13,6 @@ export default function LoginPage() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
-  // Redirect if already logged in
   useEffect(() => {
     if (!authLoading && isAuthenticated) {
       router.push("/dashboard");
@@ -23,15 +22,31 @@ export default function LoginPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
+
+    // Validation
+    if (!formData.username.trim()) {
+      setError("Username is required");
+      return;
+    }
+
+    if (!formData.password) {
+      setError("Password is required");
+      return;
+    }
+
+    if (formData.password.length < 6) {
+      setError("Password must be at least 6 characters");
+      return;
+    }
+
     setLoading(true);
 
     const result = await login(formData.username, formData.password);
 
     if (result.success) {
-      // Redirect to dashboard
       router.push("/dashboard");
     } else {
-      setError(result.error || "Login failed");
+      setError(result.error || "Login failed. Please check your credentials.");
       setLoading(false);
     }
   };
@@ -43,7 +58,6 @@ export default function LoginPage() {
     }));
   };
 
-  // Show loading while checking auth
   if (authLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
@@ -80,7 +94,7 @@ export default function LoginPage() {
                 className="bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded-lg"
                 initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}>
-                <p className="text-sm">{error}</p>
+                <p className="text-sm font-medium">{error}</p>
               </motion.div>
             )}
 
@@ -120,6 +134,7 @@ export default function LoginPage() {
                 onChange={handleChange}
                 disabled={loading}
               />
+              <p className="mt-1 text-xs text-gray-500">Minimum 6 characters</p>
             </div>
 
             <div>
