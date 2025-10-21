@@ -5,7 +5,7 @@ from pathlib import Path
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 # FORCE SQLite for local development
-FORCE_SQLITE = True
+# FORCE_SQLITE = True
 # Security
 SECRET_KEY = config('SECRET_KEY', default='django-insecure-change-me')
 DEBUG = config('DEBUG', default=False, cast=bool)  # Changed to False for production
@@ -69,26 +69,26 @@ WSGI_APPLICATION = 'config.wsgi.application'  # ADD THIS LINE
 # Database - Production PostgreSQL or Development SQLite
 DATABASE_URL = config('DATABASE_URL', default=None)
 
-if DATABASE_URL and not FORCE_SQLITE:
+import os
+from decouple import config
+import re
+
+# Database
+DATABASE_URL = config('DATABASE_URL', default=None)
+
+if DATABASE_URL:
     # Production - PostgreSQL
-    import re
-    
-    # Try different URL patterns
-    # Pattern 1: postgresql://user:pass@host:port/db
     match = re.match(r'postgres(?:ql)?://([^:]+):([^@]+)@([^:/]+):?(\d+)?/(.+)', DATABASE_URL)
     
     if match:
         DATABASES = {
             'default': {
                 'ENGINE': 'django.db.backends.postgresql',
-                'NAME': match.group(5).split('?')[0],  # Remove query params
+                'NAME': match.group(5).split('?')[0],
                 'USER': match.group(1),
                 'PASSWORD': match.group(2),
                 'HOST': match.group(3),
                 'PORT': match.group(4) or '5432',
-                'OPTIONS': {
-                    'sslmode': 'require',
-                },
             }
         }
     else:
