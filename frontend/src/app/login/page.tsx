@@ -10,7 +10,7 @@ export default function LoginPage() {
   const router = useRouter();
   const { login, isAuthenticated, isLoading: authLoading } = useAuth();
   const [formData, setFormData] = useState({ username: "", password: "" });
-  const [error, setError] = useState("");
+  const [errors, setErrors] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -19,23 +19,28 @@ export default function LoginPage() {
     }
   }, [isAuthenticated, authLoading, router]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError("");
+  const validateForm = () => {
+    const newErrors: Record<string, string> = {};
 
-    // Validation
     if (!formData.username.trim()) {
-      setError("Username is required");
-      return;
+      newErrors.username = "Username is required";
     }
 
     if (!formData.password) {
-      setError("Password is required");
-      return;
+      newErrors.password = "Password is required";
+    } else if (formData.password.length < 6) {
+      newErrors.password = "Password must be at least 6 characters";
     }
 
-    if (formData.password.length < 6) {
-      setError("Password must be at least 6 characters");
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setErrors({});
+
+    if (!validateForm()) {
       return;
     }
 
@@ -46,16 +51,32 @@ export default function LoginPage() {
     if (result.success) {
       router.push("/dashboard");
     } else {
-      setError(result.error || "Login failed. Please check your credentials.");
+      // Parse error message
+      const errorMsg = result.error || "Login failed";
+
+      if (errorMsg.toLowerCase().includes("username")) {
+        setErrors({ username: errorMsg });
+      } else if (
+        errorMsg.toLowerCase().includes("password") ||
+        errorMsg.toLowerCase().includes("credentials")
+      ) {
+        setErrors({ general: "Invalid username or password" });
+      } else {
+        setErrors({ general: errorMsg });
+      }
+
       setLoading(false);
     }
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFormData((prev) => ({
-      ...prev,
-      [e.target.name]: e.target.value,
-    }));
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
+
+    // Clear errors when user starts typing
+    if (errors[name] || errors.general) {
+      setErrors({});
+    }
   };
 
   if (authLoading) {
@@ -89,12 +110,12 @@ export default function LoginPage() {
           </div>
 
           <form className="space-y-6" onSubmit={handleSubmit}>
-            {error && (
+            {errors.general && (
               <motion.div
                 className="bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded-lg"
                 initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}>
-                <p className="text-sm font-medium">{error}</p>
+                <p className="text-sm font-medium">{errors.general}</p>
               </motion.div>
             )}
 
@@ -102,38 +123,64 @@ export default function LoginPage() {
               <label
                 htmlFor="username"
                 className="block text-sm font-medium text-gray-700 mb-2">
-                Username
+                Username <span className="text-red-500">*</span>
               </label>
               <input
                 id="username"
                 name="username"
                 type="text"
                 required
-                className="appearance-none relative block w-full px-4 py-3 border border-gray-300 placeholder-gray-400 text-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                className={`appearance-none relative block w-full px-4 py-3 border rounded-lg placeholder-gray-400 text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all ${
+                  errors.username
+                    ? "border-red-300 bg-red-50"
+                    : "border-gray-300"
+                }`}
                 placeholder="Enter your username"
                 value={formData.username}
                 onChange={handleChange}
                 disabled={loading}
+                autoComplete="username"
               />
+              {errors.username && (
+                <motion.p
+                  className="mt-1 text-sm text-red-600"
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}>
+                  {errors.username}
+                </motion.p>
+              )}
             </div>
 
             <div>
               <label
                 htmlFor="password"
                 className="block text-sm font-medium text-gray-700 mb-2">
-                Password
+                Password <span className="text-red-500">*</span>
               </label>
               <input
                 id="password"
                 name="password"
                 type="password"
                 required
-                className="appearance-none relative block w-full px-4 py-3 border border-gray-300 placeholder-gray-400 text-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                className={`appearance-none relative block w-full px-4 py-3 border rounded-lg placeholder-gray-400 text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all ${
+                  errors.password
+                    ? "border-red-300 bg-red-50"
+                    : "border-gray-300"
+                }`}
                 placeholder="Enter your password"
                 value={formData.password}
                 onChange={handleChange}
                 disabled={loading}
+                autoComplete="current-password"
               />
+              {errors.password && (
+                <motion.p
+                  className="mt-1 text-sm text-red-600"
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}>
+                  {errors.password}
+                </motion.p>
+              )}
               <p className="mt-1 text-xs text-gray-500">Minimum 6 characters</p>
             </div>
 

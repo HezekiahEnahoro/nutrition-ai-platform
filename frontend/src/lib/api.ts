@@ -25,43 +25,67 @@ class ApiClient {
   }
 
   private async request<T>(
-    endpoint: string,
-    options: RequestInit = {}
-  ): Promise<ApiResponse<T>> {
-    const url = `${this.baseURL}${endpoint}`;
+  endpoint: string,
+  options: RequestInit = {}
+): Promise<ApiResponse<T>> {
+  const url = `${this.baseURL}${endpoint}`;
 
-    const config: RequestInit = {
-      mode: 'cors',
-      credentials: 'include', // Important for session cookies
-      ...options,
-      headers: {
-        'Content-Type': 'application/json',
-        ...(options.headers || {}),
-      },
-    };
+  const config: RequestInit = {
+    mode: 'cors',
+    credentials: 'include',
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...(options.headers || {}),
+    },
+  };
 
+  try {
+    const response = await fetch(url, config);
+    
+    let data;
     try {
-      const response = await fetch(url, config);
-      
-      let data;
-      try {
-        data = await response.json();
-      } catch {
-        data = {};
-      }
-
-      if (!response.ok) {
-        return { 
-          error: data.detail || data.message || data.error || `HTTP ${response.status}` 
-        };
-      }
-
-      return { data };
-    } catch (error) {
-      console.error('API request failed:', error);
-      return { error: 'Network error occurred' };
+      data = await response.json();
+    } catch {
+      data = {};
     }
+
+    if (!response.ok) {
+      // Extract error message from various response formats
+      let errorMessage = 'An error occurred';
+      
+      if (data.non_field_errors && Array.isArray(data.non_field_errors)) {
+        errorMessage = data.non_field_errors[0];
+      } else if (data.error) {
+        errorMessage = data.error;
+      } else if (data.detail) {
+        errorMessage = data.detail;
+      } else if (data.message) {
+        errorMessage = data.message;
+      } else if (data.username) {
+        errorMessage = Array.isArray(data.username) ? data.username[0] : data.username;
+      } else if (data.email) {
+        errorMessage = Array.isArray(data.email) ? data.email[0] : data.email;
+      } else if (data.password) {
+        errorMessage = Array.isArray(data.password) ? data.password[0] : data.password;
+      } else {
+        // Try to get any field error
+        const firstErrorKey = Object.keys(data).find(key => data[key]);
+        if (firstErrorKey && data[firstErrorKey]) {
+          const errorValue = data[firstErrorKey];
+          errorMessage = Array.isArray(errorValue) ? errorValue[0] : errorValue;
+        }
+      }
+      
+      return { error: errorMessage };
+    }
+
+    return { data };
+  } catch (error) {
+    console.error('API request failed:', error);
+    return { error: 'Network error. Please check your connection.' };
   }
+}
 
   // Auth methods
   async login(username: string, password: string) {

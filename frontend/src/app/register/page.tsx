@@ -17,7 +17,7 @@ export default function RegisterPage() {
     password: "",
     password_confirm: "",
   });
-  const [error, setError] = useState("");
+  const [errors, setErrors] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -26,12 +26,42 @@ export default function RegisterPage() {
     }
   }, [isAuthenticated, authLoading, router]);
 
+  const validateForm = () => {
+    const newErrors: Record<string, string> = {};
+
+    if (!formData.username.trim()) {
+      newErrors.username = "Username is required";
+    } else if (formData.username.length < 3) {
+      newErrors.username = "Username must be at least 3 characters";
+    }
+
+    if (!formData.email.trim()) {
+      newErrors.email = "Email is required";
+    } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
+      newErrors.email = "Email is invalid";
+    }
+
+    if (!formData.password) {
+      newErrors.password = "Password is required";
+    } else if (formData.password.length < 6) {
+      newErrors.password = "Password must be at least 6 characters";
+    }
+
+    if (!formData.password_confirm) {
+      newErrors.password_confirm = "Please confirm your password";
+    } else if (formData.password !== formData.password_confirm) {
+      newErrors.password_confirm = "Passwords do not match";
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError("");
+    setErrors({});
 
-    if (formData.password !== formData.password_confirm) {
-      setError("Passwords do not match");
+    if (!validateForm()) {
       return;
     }
 
@@ -42,16 +72,32 @@ export default function RegisterPage() {
     if (result.success) {
       router.push("/profile");
     } else {
-      setError(result.error || "Registration failed");
+      // Set the error in the appropriate field or general error
+      if (result.error?.toLowerCase().includes("username")) {
+        setErrors({ username: result.error });
+      } else if (result.error?.toLowerCase().includes("email")) {
+        setErrors({ email: result.error });
+      } else if (result.error?.toLowerCase().includes("password")) {
+        setErrors({ password: result.error });
+      } else {
+        setErrors({ general: result.error || "Registration failed" });
+      }
       setLoading(false);
     }
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFormData((prev) => ({
-      ...prev,
-      [e.target.name]: e.target.value,
-    }));
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
+
+    // Clear error for this field when user starts typing
+    if (errors[name]) {
+      setErrors((prev) => {
+        const newErrors = { ...prev };
+        delete newErrors[name];
+        return newErrors;
+      });
+    }
   };
 
   if (authLoading) {
@@ -85,12 +131,12 @@ export default function RegisterPage() {
           </div>
 
           <form className="space-y-4" onSubmit={handleSubmit}>
-            {error && (
+            {errors.general && (
               <motion.div
                 className="bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded-lg"
                 initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}>
-                <p className="text-sm">{error}</p>
+                <p className="text-sm font-medium">{errors.general}</p>
               </motion.div>
             )}
 
@@ -105,7 +151,6 @@ export default function RegisterPage() {
                   id="first_name"
                   name="first_name"
                   type="text"
-                  required
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   value={formData.first_name}
                   onChange={handleChange}
@@ -123,7 +168,6 @@ export default function RegisterPage() {
                   id="last_name"
                   name="last_name"
                   type="text"
-                  required
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   value={formData.last_name}
                   onChange={handleChange}
@@ -136,72 +180,101 @@ export default function RegisterPage() {
               <label
                 htmlFor="username"
                 className="block text-sm font-medium text-gray-700 mb-1">
-                Username
+                Username <span className="text-red-500">*</span>
               </label>
               <input
                 id="username"
                 name="username"
                 type="text"
                 required
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                  errors.username
+                    ? "border-red-300 bg-red-50"
+                    : "border-gray-300"
+                }`}
                 value={formData.username}
                 onChange={handleChange}
                 disabled={loading}
               />
+              {errors.username && (
+                <p className="mt-1 text-sm text-red-600">{errors.username}</p>
+              )}
             </div>
 
             <div>
               <label
                 htmlFor="email"
                 className="block text-sm font-medium text-gray-700 mb-1">
-                Email
+                Email <span className="text-red-500">*</span>
               </label>
               <input
                 id="email"
                 name="email"
                 type="email"
                 required
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                  errors.email ? "border-red-300 bg-red-50" : "border-gray-300"
+                }`}
                 value={formData.email}
                 onChange={handleChange}
                 disabled={loading}
               />
+              {errors.email && (
+                <p className="mt-1 text-sm text-red-600">{errors.email}</p>
+              )}
             </div>
 
             <div>
               <label
                 htmlFor="password"
                 className="block text-sm font-medium text-gray-700 mb-1">
-                Password
+                Password <span className="text-red-500">*</span>
               </label>
               <input
                 id="password"
                 name="password"
                 type="password"
                 required
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                  errors.password
+                    ? "border-red-300 bg-red-50"
+                    : "border-gray-300"
+                }`}
                 value={formData.password}
                 onChange={handleChange}
                 disabled={loading}
               />
+              {errors.password && (
+                <p className="mt-1 text-sm text-red-600">{errors.password}</p>
+              )}
+              <p className="mt-1 text-xs text-gray-500">Minimum 6 characters</p>
             </div>
 
             <div>
               <label
                 htmlFor="password_confirm"
                 className="block text-sm font-medium text-gray-700 mb-1">
-                Confirm Password
+                Confirm Password <span className="text-red-500">*</span>
               </label>
               <input
                 id="password_confirm"
                 name="password_confirm"
                 type="password"
                 required
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                  errors.password_confirm
+                    ? "border-red-300 bg-red-50"
+                    : "border-gray-300"
+                }`}
                 value={formData.password_confirm}
                 onChange={handleChange}
                 disabled={loading}
               />
+              {errors.password_confirm && (
+                <p className="mt-1 text-sm text-red-600">
+                  {errors.password_confirm}
+                </p>
+              )}
             </div>
 
             <div>
