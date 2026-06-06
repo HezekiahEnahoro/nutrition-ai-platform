@@ -4,7 +4,7 @@ import { motion } from "framer-motion";
 import { buttonVariants } from "@/lib/animations";
 import { ButtonHTMLAttributes } from "react";
 
-interface AnimatedButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
+interface AnimatedButtonProps extends Omit<ButtonHTMLAttributes<HTMLButtonElement>, 'onAnimationStart' | 'onDrag' | 'onDragEnd' | 'onDragStart'> {
   variant?: "primary" | "secondary" | "outline";
   size?: "sm" | "md" | "lg";
 }

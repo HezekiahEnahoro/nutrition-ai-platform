@@ -60,7 +60,12 @@ class UserProfile(models.Model):
     
     # Profile completion
     is_profile_complete = models.BooleanField(default=False)
-    
+
+    # Streak tracking
+    current_streak = models.PositiveIntegerField(default=0)
+    longest_streak = models.PositiveIntegerField(default=0)
+    last_logged_date = models.DateField(null=True, blank=True)
+
     # Timestamps
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -141,6 +146,19 @@ class UserProfile(models.Model):
             self.daily_carbs_goal = goals['carbs']
             self.daily_fat_goal = goals['fat']
             self.save()
+
+    def update_streak(self):
+        """Increment or reset the logging streak based on today's date."""
+        from datetime import date, timedelta
+        today = date.today()
+        if self.last_logged_date is None or self.last_logged_date < today - timedelta(days=1):
+            self.current_streak = 1
+        elif self.last_logged_date == today - timedelta(days=1):
+            self.current_streak += 1
+        # last_logged_date == today means already logged today — streak unchanged
+        self.last_logged_date = today
+        self.longest_streak = max(self.longest_streak, self.current_streak)
+        self.save(update_fields=['current_streak', 'longest_streak', 'last_logged_date'])
 
 # Signal to auto-create profile when user is created
 @receiver(post_save, sender=User)

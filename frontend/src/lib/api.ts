@@ -17,6 +17,12 @@ interface RegisterData {
   password_confirm: string;
 }
 
+function getCsrfToken(): string {
+  if (typeof document === 'undefined') return '';
+  const match = document.cookie.match(/csrftoken=([^;]+)/);
+  return match ? match[1] : '';
+}
+
 class ApiClient {
   private baseURL: string;
 
@@ -29,13 +35,15 @@ class ApiClient {
   options: RequestInit = {}
 ): Promise<ApiResponse<T>> {
   const url = `${this.baseURL}${endpoint}`;
+  const method = options.method || 'GET';
+  const isMutating = !['GET', 'HEAD', 'OPTIONS'].includes(method.toUpperCase());
 
   const config: RequestInit = {
-    mode: 'cors',
     credentials: 'include',
     ...options,
     headers: {
       'Content-Type': 'application/json',
+      ...(isMutating ? { 'X-CSRFToken': getCsrfToken() } : {}),
       ...(options.headers || {}),
     },
   };
@@ -134,10 +142,26 @@ class ApiClient {
 
   async getDailySummary(date?: string) {
     const dateParam = date ? `?date=${date}` : '';
-    return this.request(`/meals/daily_summary/${dateParam}`);
+    return this.request<{ date: string; meals_count: number; totals: { calories: number; protein: number; carbs: number; fat: number } }>(`/meals/daily_summary/${dateParam}`);
+  }
+
+  async deleteMeal(id: number) {
+    return this.request(`/meals/${id}/`, { method: 'DELETE' });
+  }
+
+  async getWeeklyProgress() {
+    return this.request<{ progress: unknown[]; summary: unknown }>('/meals/progress/weekly/');
+  }
+
+  async getMonthlyProgress() {
+    return this.request<{ progress: unknown[]; summary: unknown }>('/meals/progress/monthly/');
   }
 
   // Profile methods
+  async getProfile() {
+    return this.request<UserProfile>('/auth/profile/');
+  }
+
   async updateProfile(profileData: Partial<UserProfile>) {
     return this.request<UserProfile>('/auth/profile/', {
       method: 'PATCH',
@@ -145,8 +169,27 @@ class ApiClient {
     });
   }
 
+  async lookupBarcode(barcode: string) {
+    return this.request<{
+      name: string;
+      brand: string;
+      serving_size: string;
+      image_url: string;
+      per_100g: { calories: number; protein: number; carbs: number; fat: number; fiber: number };
+    }>(`/meals/barcode/?barcode=${encodeURIComponent(barcode)}`);
+  }
+
+  // Recommendations
   async getRecommendations() {
     return this.request<{ results: Recommendation[] }>('/meals/recommendations/');
+  }
+
+  async generateRecommendations() {
+    return this.request<{ created: number; results: Recommendation[] }>('/meals/recommendations/generate/', { method: 'POST' });
+  }
+
+  async markRecommendationRead(id: number) {
+    return this.request(`/meals/recommendations/${id}/mark_read/`, { method: 'PATCH' });
   }
 }
 

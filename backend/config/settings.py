@@ -126,9 +126,11 @@ AUTH_PASSWORD_VALIDATORS = [
 
 # REST Framework
 REST_FRAMEWORK = {
-    'DEFAULT_AUTHENTICATION_CLASSES': [],
+    'DEFAULT_AUTHENTICATION_CLASSES': [
+        'rest_framework.authentication.SessionAuthentication',
+    ],
     'DEFAULT_PERMISSION_CLASSES': [
-        'rest_framework.permissions.AllowAny',
+        'rest_framework.permissions.IsAuthenticated',
     ],
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
     'PAGE_SIZE': 20,
@@ -177,11 +179,11 @@ CORS_ALLOW_CREDENTIALS = True
 CROSS_SITE_PROD = config("CROSS_SITE_PROD", default="true", cast=bool)
 
 if DEBUG:
-    # Dev over HTTP
+    # Dev: no SameSite restriction so cookies flow between localhost:3000 and 127.0.0.1:8000
     SESSION_COOKIE_SECURE = False
     CSRF_COOKIE_SECURE = False
-    SESSION_COOKIE_SAMESITE = "Lax"
-    CSRF_COOKIE_SAMESITE = "Lax"
+    SESSION_COOKIE_SAMESITE = False
+    CSRF_COOKIE_SAMESITE = False
 else:
     if CROSS_SITE_PROD:
         # Cross-site HTTPS
@@ -198,7 +200,7 @@ else:
 
 # Keep CSRF cookie readable so you can send X-CSRFToken
 CSRF_COOKIE_HTTPONLY = False
-SESSION_COOKIE_HTTPONLY = False  # if you don’t need JS access, set True for security
+SESSION_COOKIE_HTTPONLY = True
 
 SESSION_COOKIE_NAME = config("SESSION_COOKIE_NAME", default="sessionid")
 CSRF_COOKIE_NAME   = config("CSRF_COOKIE_NAME", default="csrftoken")

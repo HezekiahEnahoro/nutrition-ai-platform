@@ -1,101 +1,118 @@
-import openai
-from decouple import config
-from typing import Dict, List
 import json
+import logging
+from typing import Dict, List
+from decouple import config
+
+logger = logging.getLogger(__name__)
+
+_SYSTEM = (
+    "You are a certified nutritionist. "
+    "Analyze meals and return ONLY raw JSON — no markdown, no code fences, no extra text."
+)
+
+_PROMPT = """Analyze this meal. Return ONLY valid JSON, no markdown, no explanation.
+
+Meal: {description}
+Parsed foods: {parsed_foods}
+
+Required JSON format:
+{{
+  "calories": <integer>,
+  "protein": <integer grams>,
+  "carbs": <integer grams>,
+  "fat": <integer grams>,
+  "fiber": <integer grams>,
+  "recommendations": ["<actionable tip 1>", "<actionable tip 2>", "<actionable tip 3>"],
+  "confidence_score": <float 0.0-1.0>
+}}"""
+
 
 class NutritionAI:
-    """AI-powered nutrition analysis with togglable real/mock data"""
-    
-    USE_REAL_AI = config('USE_OPENAI', default=False, cast=bool)
-    OPENAI_API_KEY = config('OPENAI_API_KEY', default='')
-    
+    _USE_OPENAI = config('USE_OPENAI', default=False, cast=bool)
+    _OPENAI_KEY = config('OPENAI_API_KEY', default='')
+    _USE_GROQ = config('USE_GROQ', default=False, cast=bool)
+    _GROQ_KEY = config('GROQ_API_KEY', default='')
+
     def __init__(self):
-        if self.USE_REAL_AI and self.OPENAI_API_KEY:
-            openai.api_key = self.OPENAI_API_KEY
-    
-    def analyze_meal(self, description: str, parsed_foods: List[Dict] = None) -> Dict:
-        """Analyze meal and return nutrition data"""
-        if self.USE_REAL_AI:
-            return self._analyze_with_openai(description, parsed_foods)
+        self._openai = None
+        self._groq = None
+
+        if self._USE_OPENAI and self._OPENAI_KEY:
+            from openai import OpenAI
+            self._openai = OpenAI(api_key=self._OPENAI_KEY)
+            logger.info("NutritionAI: using OpenAI (gpt-4o-mini)")
+        elif self._USE_GROQ and self._GROQ_KEY:
+            from groq import Groq
+            self._groq = Groq(api_key=self._GROQ_KEY)
+            logger.info("NutritionAI: using Groq (llama-3.3-70b-versatile)")
         else:
-            return self._analyze_mock(description, parsed_foods)
-    
-    def _analyze_with_openai(self, description: str, parsed_foods: List[Dict]) -> Dict:
-        """Real OpenAI analysis"""
-        prompt = f"""Analyze this meal and provide detailed nutrition information:
+            logger.warning("NutritionAI: no LLM configured, using mock analysis")
 
-Meal description: {description}
-Parsed foods: {json.dumps(parsed_foods)}
+    def analyze_meal(self, description: str, parsed_foods: List[Dict] = None) -> Dict:
+        if self._openai:
+            return self._call_llm(self._openai, "gpt-4o-mini", description, parsed_foods)
+        if self._groq:
+            return self._call_llm(self._groq, "llama-3.3-70b-versatile", description, parsed_foods)
+        return self._mock(description, parsed_foods)
 
-Provide a JSON response with:
-1. Estimated total calories
-2. Macronutrients (protein, carbs, fat in grams)
-3. Fiber content
-4. 2-3 specific recommendations for improvement
-5. Confidence score (0-1)
-
-Format as valid JSON."""
-
+    def _call_llm(self, client, model: str, description: str, parsed_foods: List[Dict]) -> Dict:
+        prompt = _PROMPT.format(
+            description=description,
+            parsed_foods=json.dumps(parsed_foods or []),
+        )
         try:
-            response = openai.ChatCompletion.create(
-                model="gpt-3.5-turbo",
+            response = client.chat.completions.create(
+                model=model,
                 messages=[
-                    {"role": "system", "content": "You are a certified nutritionist providing meal analysis."},
-                    {"role": "user", "content": prompt}
+                    {"role": "system", "content": _SYSTEM},
+                    {"role": "user", "content": prompt},
                 ],
-                temperature=0.3,
-                max_tokens=500
+                temperature=0.2,
+                max_tokens=500,
             )
-            
-            content = response.choices[0].message.content
-            return json.loads(content)
-            
-        except Exception as e:
-            print(f"OpenAI API error: {e}")
-            return self._analyze_mock(description, parsed_foods)
-    
-    def _analyze_mock(self, description: str, parsed_foods: List[Dict]) -> Dict:
-        """Mock analysis based on parsed foods and keywords"""
-        # Estimate based on keywords
-        calories = 300
-        protein = 20
-        carbs = 35
-        fat = 10
-        fiber = 4
-        
-        desc_lower = description.lower()
-        
-        # Adjust based on keywords
-        if any(word in desc_lower for word in ['chicken', 'beef', 'fish', 'turkey']):
-            protein += 15
-            calories += 100
-        
-        if any(word in desc_lower for word in ['rice', 'pasta', 'bread', 'potato']):
-            carbs += 30
-            calories += 120
-        
-        if any(word in desc_lower for word in ['salad', 'vegetables', 'broccoli', 'spinach']):
-            fiber += 3
-            calories += 30
-        
-        # Generate recommendations
-        recommendations = []
+            content = response.choices[0].message.content.strip()
+            # Strip markdown code fences if the model ignores the instruction
+            if content.startswith("```"):
+                content = content.split("```")[1]
+                if content.startswith("json"):
+                    content = content[4:]
+            result = json.loads(content.strip())
+            for key in ("calories", "protein", "carbs", "fat", "fiber", "recommendations", "confidence_score"):
+                if key not in result:
+                    raise ValueError(f"LLM response missing key: {key}")
+            return result
+        except Exception as exc:
+            logger.error("LLM error (%s): %s — falling back to mock", model, exc)
+            return self._mock(description, parsed_foods)
+
+    def _mock(self, description: str, parsed_foods: List[Dict]) -> Dict:
+        calories, protein, carbs, fat, fiber = 300, 20, 35, 10, 4
+        desc = description.lower()
+
+        if any(w in desc for w in ['chicken', 'beef', 'fish', 'turkey', 'salmon', 'tuna']):
+            protein += 15; calories += 100
+        if any(w in desc for w in ['rice', 'pasta', 'bread', 'potato', 'quinoa', 'oats']):
+            carbs += 30; calories += 120
+        if any(w in desc for w in ['salad', 'vegetables', 'broccoli', 'spinach', 'kale']):
+            fiber += 3; calories += 30
+        if any(w in desc for w in ['egg', 'eggs']):
+            protein += 6; fat += 5; calories += 70
+        if 'avocado' in desc:
+            fat += 15; fiber += 5; calories += 160
+
+        recs = []
         if protein < 25:
-            recommendations.append("Consider adding more protein for muscle maintenance")
+            recs.append("Add a protein source like chicken, fish, or legumes to support muscle repair")
         if fiber < 5:
-            recommendations.append("Add more vegetables or whole grains for fiber")
+            recs.append("Increase fiber with more vegetables, legumes, or whole grains")
         if carbs > 60:
-            recommendations.append("High carb content - consider reducing portion sizes if weight loss is a goal")
-        
-        if not recommendations:
-            recommendations.append("Well-balanced meal with good macro distribution")
-        
+            recs.append("High carb content — consider reducing portions if managing weight")
+        if fat > 25:
+            recs.append("Opt for healthy fats like avocado or nuts instead of saturated fats")
+        if not recs:
+            recs.append("Well-balanced meal — great macro distribution!")
+
         return {
-            'calories': calories,
-            'protein': protein,
-            'carbs': carbs,
-            'fat': fat,
-            'fiber': fiber,
-            'recommendations': recommendations,
-            'confidence_score': 0.75
+            'calories': calories, 'protein': protein, 'carbs': carbs,
+            'fat': fat, 'fiber': fiber, 'recommendations': recs, 'confidence_score': 0.75,
         }

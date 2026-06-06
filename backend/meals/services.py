@@ -27,9 +27,11 @@ class ProgressTrackingService:
             total_fiber=Sum('total_fiber'),
         )
         
-        # Get user's goals
+        # Get user's goals — auto-calculate if profile is complete but goals aren't stored yet
         profile = user.profile
-        
+        if not profile.daily_calorie_goal and all([profile.age, profile.weight, profile.height, profile.gender]):
+            profile.update_goals()
+
         # Create or update daily progress
         progress, created = DailyProgress.objects.update_or_create(
             user=user,

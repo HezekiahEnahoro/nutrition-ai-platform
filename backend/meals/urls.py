@@ -1,15 +1,19 @@
-from django.urls import path, include
-from rest_framework.routers import DefaultRouter
+from django.urls import path
+from rest_framework.routers import SimpleRouter
 from . import views
 
-router = DefaultRouter()
-router.register(r'', views.MealViewSet, basename='meal')
-router.register(r'recommendations', views.RecommendationViewSet, basename='recommendation')
+# Recommendations router must come first — the empty-prefix MealViewSet router
+# generates a catch-all detail pattern that would shadow /recommendations/ otherwise.
+rec_router = SimpleRouter()
+rec_router.register(r'recommendations', views.RecommendationViewSet, basename='recommendation')
+
+meal_router = SimpleRouter()
+meal_router.register(r'', views.MealViewSet, basename='meal')
 
 urlpatterns = [
     path('analyze/', views.analyze_meal_json, name='analyze_meal'),
     path('daily_summary/', views.daily_summary_json, name='daily_summary'),
+    path('barcode/', views.barcode_lookup, name='barcode_lookup'),
     path('progress/weekly/', views.progress_weekly_json, name='progress_weekly'),
     path('progress/monthly/', views.progress_monthly_json, name='progress_monthly'),
-    path('', views.meals_list_json, name='meals_list'),
-]
+] + rec_router.urls + meal_router.urls
