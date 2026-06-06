@@ -91,7 +91,7 @@ export default function LoginPage() {
               N
             </div>
             <h1 className="text-xl font-bold mb-1" style={{ color: "var(--text-primary)" }}>Welcome back</h1>
-            <p className="text-sm" style={{ color: "var(--text-muted)" }}>Sign in to your NutritionOS account</p>
+            <p className="text-sm" style={{ color: "var(--text-muted)" }}>Sign in to your NutritionAI account</p>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">

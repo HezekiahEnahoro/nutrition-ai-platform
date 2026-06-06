@@ -256,7 +256,7 @@ def barcode_lookup(request):
         res = http_requests.get(
             f'https://world.openfoodfacts.org/api/v0/product/{barcode}.json',
             timeout=6,
-            headers={'User-Agent': 'NutritionOS/1.0 (contact@nutritionos.app)'},
+            headers={'User-Agent': 'NutritionAI/1.0'},
         )
         data = res.json()
         if data.get('status') != 1:

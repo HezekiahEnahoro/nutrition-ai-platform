@@ -108,7 +108,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
                 N
               </div>
               <span className="font-semibold text-sm tracking-tight" style={{ color: "var(--text-primary)" }}>
-                NutritionOS
+                NutritionAI
               </span>
             </Link>
 

@@ -3,7 +3,7 @@ import { AuthProvider } from "@/lib/auth";
 import { Toaster } from "react-hot-toast";
 
 export const metadata = {
-  title: "NutritionOS",
+  title: "NutritionAI",
   description: "Precision nutrition tracking powered by AI",
 };
 

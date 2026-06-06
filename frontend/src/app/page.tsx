@@ -59,7 +59,7 @@ function FloatingMockup() {
           <div className="flex items-center justify-between pb-3 border-b" style={{ borderColor: "rgba(255,255,255,0.06)" }}>
             <div className="flex items-center gap-2">
               <div className="w-5 h-5 rounded-md" style={{ background: "linear-gradient(135deg,#06b6d4,#8b5cf6)" }} />
-              <span className="text-xs font-semibold" style={{ color: "#f1f5f9" }}>NutritionOS</span>
+              <span className="text-xs font-semibold" style={{ color: "#f1f5f9" }}>NutritionAI</span>
             </div>
             <div className="flex gap-3">
               {["Dashboard", "Progress", "Insights"].map((l) => (
@@ -200,7 +200,7 @@ export default function LandingPage() {
               style={{ background: "linear-gradient(135deg,#06b6d4,#8b5cf6)", boxShadow: "0 0 16px rgba(34,211,238,0.3)" }}>
               N
             </div>
-            <span className="font-semibold text-sm" style={{ color: "var(--text-primary)" }}>NutritionOS</span>
+            <span className="font-semibold text-sm" style={{ color: "var(--text-primary)" }}>NutritionAI</span>
           </motion.div>
 
           <motion.div
@@ -425,14 +425,14 @@ export default function LandingPage() {
         <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-2">
             <div className="w-5 h-5 rounded-md" style={{ background: "linear-gradient(135deg,#06b6d4,#8b5cf6)" }} />
-            <span className="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>NutritionOS</span>
+            <span className="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>NutritionAI</span>
           </div>
           <div className="flex items-center gap-6">
             <Link href="/login" className="text-xs transition-colors" style={{ color: "var(--text-muted)" }}>Sign in</Link>
             <Link href="/register" className="text-xs transition-colors" style={{ color: "var(--text-muted)" }}>Register</Link>
           </div>
           <p className="text-xs" style={{ color: "var(--text-muted)" }}>
-            © 2026 NutritionOS · Built with Django & Next.js
+            © 2026 NutritionAI · Built with Django & Next.js
           </p>
         </div>
       </footer>
